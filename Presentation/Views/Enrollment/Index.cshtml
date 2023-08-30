@@ -1,0 +1,186 @@
+﻿@model Presentation.Models.EnrollmentViewDTO
+@{
+    ViewData["Title"] = "Student List";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<h1>Enrollment List</h1>
+<p class="float-right">
+    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#enrollmentModel">
+        Add Enrollment
+    </button>
+</p>
+
+<table id="enrollmentTable" class="display" style="width:100%">
+    <thead>
+        <tr>
+            <th>Course Name</th>
+            <th>Student Name</th>
+            <th>Teacher Name</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Model != null)
+        {
+            @foreach (var enrollment in Model.enrollmentList)
+            {
+                <tr>
+                    <td>@enrollment.CourseName</td>
+                    <td>@enrollment.StudentName</td>
+                    <td>@enrollment.TeacherName</td>
+                    <td>
+                        <button class="btn btn-primary btn-md editButton" dataid="@enrollment.EnrollmentId">Edit</button>
+                        <button class="btn btn-danger  btn-md deleteButton" dataid="@enrollment.EnrollmentId">Delete</button>
+                    </td>
+                </tr>
+            }
+        }
+    </tbody>
+</table>
+
+<div class="modal fade" id="enrollmentModel">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="studentModelTitle">Add Enrollment</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="enrollmentForm">
+                    <div class="form-group">
+                        <label for="course">Course:</label>
+                        <select class="form-control" id="course">
+                            @{
+                                if (Model != null)
+                                {
+                                    foreach (var item in Model.couresList)
+                                    {
+                                        <option value="@item.Id">@item.Name</option>
+                                    }
+                                }
+                            }
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="course">Student:</label>
+                        <select class="form-control" id="student">
+                            @{
+                                if (Model != null)
+                                {
+                                    foreach (var item in Model.studentList)
+                                    {
+                                        <option value="@item.Id">@item.Name</option>
+                                    }
+                                }
+                            }
+                        </select>
+                    </div>
+
+
+                    <div class="form-group">
+                        <label for="course">Teacher:</label>
+                        <select class="form-control" id="teacher">
+                            @{
+                                if (Model != null)
+                                {
+                                    foreach (var item in Model.teacherList)
+                                    {
+                                        <option value="@item.Id">@item.Name</option>
+                                    }
+                                }
+                            }
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function() {
+        $('#enrollmentTable').DataTable();
+
+        $('#enrollmentForm').submit(function(event) {
+            event.preventDefault();
+            var courseId = $('#course').val();
+            var studentId = $('#student').val();
+            var teacherId = $('#teacher').val();
+
+            var formData = {
+                CourseId: courseId,
+                StudentId: studentId,
+                TeacherId: teacherId
+            };
+            $.ajax({
+                url: '/Enrollment/AddUpdate',
+                type: 'POST',
+                data: formData,
+                success: function(response) {
+                    Notification(response.isSuccess, response.message, true);
+                    $('#enrollmentForm')[0].reset();
+                },
+                error: function(error) {
+                    console.error('Error sending form data:', error);
+                }
+            });
+        });
+    });
+
+    $("#enrollmentTable").on("click", ".editButton", function() {
+        var id = $(this).attr("dataid");
+        $.ajax({
+            url: '/Student/Details?Id=' + id,
+            type: 'GET',
+            success: function(response) {
+                if (response.isSuccess) {
+                    $("#studentModelTitle").text("Edit Student");
+                    $("#studentId").val(id);
+                    $("#firstName").val(response.data.firstName);
+                    $("#lastName").val(response.data.lastName);
+                    $("#address").val(response.data.address);
+                    $('#studentModel').modal('toggle');
+                } else {
+                    Notification(response.isSuccess, response.message, false);
+                }
+
+            },
+            error: function(error) {
+                console.error('Error sending form data:', error);
+            }
+        });
+    });
+    $("#enrollmentTable").on("click", ".deleteButton", function() {
+        var id = $(this).attr("dataid");
+        Swal.fire({
+            text: 'Are you sure you want to delete this item?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, proceed!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '/Enrollment/Delete?Id=' + id,
+                    type: 'GET',
+                    success: function(response) {
+                        Notification(response.isSuccess, response.message, response.isSuccess);
+                    },
+                    error: function(error) {
+                        console.error('Error sending form data:', error);
+                    }
+                });
+            } else {
+
+            }
+        });
+    });
+</script>

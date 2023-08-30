@@ -1,0 +1,154 @@
+﻿@model IEnumerable<Presentation.Models.CourseDTO>
+@{
+    ViewData["Title"] = "Courses List";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<h1>Courses List</h1>
+<p class="float-right">
+    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#courseModel">
+        Add Course
+    </button>
+</p>
+
+<table id="coursesTable" class="display" style="width:100%">
+    <thead>
+        <tr>
+            <th>Course Name</th>
+            <th>Credits</th>
+            <th>Description</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Model != null)
+        {
+            @foreach (var course in Model)
+            {
+                <tr>
+                    <td>@course.CourseName</td>
+                    <td>@course.Credits</td>
+                    <td>@course.Description</td>
+                    <td>
+                        <button class="btn btn-primary btn-md editCourseButton" dataid="@course.CourseId">Edit</button>
+                        <button class="btn btn-danger  btn-md deleteCourseButton" dataid="@course.CourseId">Delete</button>
+                    </td>
+                </tr>
+            }
+        }
+    </tbody>
+</table>
+
+<div class="modal fade" id="courseModel">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="courseModelTitle">Add Course</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="courseForm">
+                    <div class="form-group">
+                        <label for="courseName">Course Name:</label>
+                        <input type="hidden" id="courseId" value="0" />
+                        <input type="text" required class="form-control" id="courseName" placeholder="Enter course name">
+                    </div>
+                    <div class="form-group">
+                        <label for="description">Description:</label>
+                        <textarea required class="form-control" id="description" rows="3" placeholder="Enter description"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="credits">Credits:</label>
+                        <input required type="number" class="form-control" id="credits" placeholder="Enter credits">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function() {
+        $('#coursesTable').DataTable();
+
+        $('#courseForm').submit(function(event) {
+            event.preventDefault();
+            var courseId = $('#courseId').val();
+            var courseName = $('#courseName').val();
+            var description = $('#description').val();
+            var credits = $('#credits').val();
+            var formData = {
+                CourseId: courseId,
+                CourseName: courseName,
+                Description: description,
+                Credits: parseInt(credits)
+            };
+            $.ajax({
+                url: '/Course/AddUpdate',
+                type: 'POST',
+                data: formData,
+                success: function(response) {
+                    Notification(response.isSuccess, response.message, true);
+                    $('#courseForm')[0].reset();
+                },
+                error: function(error) {
+                    console.error('Error sending form data:', error);
+                }
+            });
+        });
+    });
+
+    $("#coursesTable").on("click", ".editCourseButton", function() {
+        var id = $(this).attr("dataid");
+        $.ajax({
+            url: '/Course/Details?Id=' + id,
+            type: 'GET',
+            success: function(response) {
+                if (response.isSuccess) {
+                    $("#courseModelTitle").text("Edit Course");
+                    $("#courseId").val(id);
+                    $("#courseName").val(response.data.courseName);
+                    $("#description").val(response.data.description);
+                    $("#credits").val(response.data.credits);
+                    $('#courseModel').modal('toggle');
+                } else {
+                    Notification(response.isSuccess, response.message, false);
+                }
+
+            },
+            error: function(error) {
+                console.error('Error sending form data:', error);
+            }
+        });
+    });
+    $("#coursesTable").on("click", ".deleteCourseButton", function() {
+        var id = $(this).attr("dataid");
+        Swal.fire({
+            text: 'Are you sure you want to delete this item?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, proceed!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '/Course/Delete?Id=' + id,
+                    type: 'GET',
+                    success: function(response) {
+                        Notification(response.isSuccess, response.message, response.isSuccess);
+                    },
+                    error: function(error) {
+                        console.error('Error sending form data:', error);
+                    }
+                });
+            } else {
+
+            }
+        });
+    });
+</script>
